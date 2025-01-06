@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {conn} = require('../db');
 const bcrypt = require('bcrypt');
+const { client } = require('../redis');
 
 
 const validateData = async ( password, record ) => {
@@ -31,12 +32,18 @@ router.post('/', async (req, res) => {
     }
 
     try{
-        const record = await conn.query(`SELECT password FROM users WHERE email = '${email}'`);
-       
+        const record = await conn.query(`SELECT password, userId FROM users WHERE email = '${email}'`);
+        
         const check = await validateData(password, record);
         
         if(!check.valid){
             return res.status(500).json({ Error: check.message })
+        }
+        
+        const cacheStatus = await client.SADD('active_users', record.rows[0].userid);
+
+        if(cacheStatus === 0){
+            return res.status(200).json({ message: "Session already active" });
         }
 
         return res.status(200).json({ message: check.message });

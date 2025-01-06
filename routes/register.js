@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const uuid = require('uuid');
 const {conn} = require('../db');
+const { client } = require('../redis');
 
 
 router.post('/', async (req, res) => {
@@ -16,12 +17,19 @@ router.post('/', async (req, res) => {
         // Generate Unique User ID
         const userId = uuid.v4();
 
+        // Store the userId in the cache as the Id is active 
+        const cacheStatus = await client.SADD('active_users', userId)
+        .catch((err) => {
+            console.log(err);
+            return res.status(500).json({ Error: "Failed to add user to active users" });
+        });
+
+        if(cacheStatus === 0){
+            return res.json({ message: "Session already active"});
+        }
+
         // hash the password
         const hashedPswd = await bcrypt.hash(password, 10);
-
-        if(!hashedPswd){
-            return res.status(500).json({ message: "Unable to Store password" });
-        }
 
         // Check if user already exists
         const foundRecord = await conn.query('SELECT * from users WHERE email = $1', [email]);

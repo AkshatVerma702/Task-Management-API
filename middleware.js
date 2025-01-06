@@ -1,4 +1,5 @@
 const {conn} = require('./db');
+const { client } = require('./redis');
 
 const authenticate = async (req, res, next) => {
     const { userId } = req.body;
@@ -10,6 +11,12 @@ const authenticate = async (req, res, next) => {
     }
 
     try{
+        const isActive = client.SISMEMBER('active_users', userId);
+
+        if(isActive){
+            return next();
+        }
+        
         const records = await conn.query(`SELECT COUNT(userId) as count from users WHERE userId = $1`, [userId])
         .catch((err) => {
             console.log("Error here");
@@ -20,7 +27,8 @@ const authenticate = async (req, res, next) => {
             error.status = 404;
             return next(error);
         }
-        next();
+        
+        return next();
     }
     catch(err){
         console.log("here");
