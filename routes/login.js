@@ -3,6 +3,7 @@ const router = express.Router();
 const {conn} = require('../db');
 const bcrypt = require('bcrypt');
 const { client } = require('../redis');
+const { resetExpire } = require('../resetExpiry');
 
 
 const validateData = async ( password, record ) => {
@@ -39,6 +40,8 @@ router.post('/', async (req, res) => {
         if(!check.valid){
             return res.status(500).json({ Error: check.message })
         }
+
+        resetExpire(record.rows[0].userid);
         
         const cacheStatus = await client.SADD('active_users', record.rows[0].userid);
 

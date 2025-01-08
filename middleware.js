@@ -1,5 +1,6 @@
 const {conn} = require('./db');
 const { client } = require('./redis');
+const { resetExpire } = require('./resetExpiry');
 
 const authenticate = async (req, res, next) => {
     const { userId } = req.body;
@@ -11,6 +12,7 @@ const authenticate = async (req, res, next) => {
     }
 
     try{
+        resetExpire(userId);
         const isActive = client.SISMEMBER('active_users', userId);
 
         if(isActive){
