@@ -2,6 +2,7 @@ const express = require('express');
 const route = express.Router();
 const {conn} = require('../db');
 const authenticate = require('../middleware');
+const { client } = require('../redis');
 
 route.get('/', authenticate, async (req, res) => {
     const {userId} = req.body;
@@ -11,6 +12,17 @@ route.get('/', authenticate, async (req, res) => {
     }
 
     try{
+        const cacheLen = await client.HLEN('all_tasks', userId);
+        console.log(cacheLen);
+
+        if(cacheLen > 0){
+            const data = await client.HGETALL('all_tasks', userId, 'task');
+            console.log("redis retreived: " + data);
+            const parsedData = JSON.parse(data);
+            console.log("Parsed Data: " + parsedData.title);
+            return res.status(200).json({ message: "Tasks Retrieved from redis", data: parsedData});
+        }
+
         const result = await conn.query(`SELECT * from tasks WHERE userId = $1`, [userId])
         .catch((err) => {
             console.log(err);

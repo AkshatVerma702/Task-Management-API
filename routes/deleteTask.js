@@ -2,6 +2,7 @@ const express = require('express');
 const route = express.Router();
 const { conn } = require('../db');
 const authenticate = require('../middleware');
+const { client } = require('../redis');
 
 route.delete('/', authenticate, async (req, res) => {
     const {userId, taskId} = req.body;
@@ -15,6 +16,11 @@ route.delete('/', authenticate, async (req, res) => {
         .catch((err) => {
             console.log(err);
         });
+
+        await client.HDEL('all_tasks', userId, 'task')
+        .catch((err) => {
+            console.log(err);
+        })
 
         return res.status(200).json({ message: "Task Deleted" });
     }
