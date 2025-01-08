@@ -12,10 +12,12 @@ route.post('/', authenticate, async (req , res) => {
     }
 
     try{
-        await conn.query(`INSERT INTO tasks (title, description, status, dueDate, userId) VALUES ($1, $2, $3, $4, $5);`, [title, description, 'pending', dueDate, userId])
+        const result = await conn.query(`INSERT INTO tasks (title, description, status, dueDate, userId) VALUES ($1, $2, $3, $4, $5) RETURNING taskId;`, [title, description, 'pending', dueDate, userId])
         .catch((err) => {
             console.log(err);
         });
+
+        const taskId = result.rows[0].taskid;
 
         const task = {
             title: title,
@@ -24,10 +26,7 @@ route.post('/', authenticate, async (req , res) => {
             dueDate: dueDate
         }
 
-        const result = await client.HSET(`all_tasks:${userId}`, userId, JSON.stringify(task))
-        .catch((err) => {
-            console.log(err);
-        });
+        await client.HSET(`all_tasks:${userId}`, taskId.toString(), JSON.stringify(task));
         
         return res.status(200).json({ message: "New task Created" });
     }

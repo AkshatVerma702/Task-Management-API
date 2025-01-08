@@ -17,10 +17,7 @@ route.delete('/', authenticate, async (req, res) => {
             console.log(err);
         });
 
-        await client.HDEL('all_tasks', userId, 'task')
-        .catch((err) => {
-            console.log(err);
-        })
+        await client.HDEL(`all_tasks:${userId}`, taskId.toString());
 
         return res.status(200).json({ message: "Task Deleted" });
     }
